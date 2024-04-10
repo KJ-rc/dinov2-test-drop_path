@@ -77,6 +77,7 @@ class Block(nn.Module):
         norm_layer: Callable[..., nn.Module] = nn.LayerNorm,
         attn_class: Callable[..., nn.Module] = Attention,
         ffn_layer: Callable[..., nn.Module] = Mlp,
+        drop_path_type: str = "dinov2",
     ) -> None:
         super().__init__()
         # print(f"biases: qkv: {qkv_bias}, proj: {proj_bias}, ffn: {ffn_bias}")
@@ -105,6 +106,7 @@ class Block(nn.Module):
         self.drop_path2 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
         self.sample_drop_ratio = drop_path
+        self.drop_path_type = drop_path_type
 
     def forward(self, x: Tensor) -> Tensor:
         def attn_residual_func(x: Tensor) -> Tensor:
@@ -113,7 +115,7 @@ class Block(nn.Module):
         def ffn_residual_func(x: Tensor) -> Tensor:
             return self.ls2(self.mlp(self.norm2(x)))
 
-        if self.training and self.sample_drop_ratio > 0.1:
+        if self.training and self.drop_path_type == "dinov2":
             # the overhead is compensated only for a drop path rate larger than 0.1
             x = drop_add_residual_stochastic_depth(
                 x,
@@ -125,7 +127,7 @@ class Block(nn.Module):
                 residual_func=ffn_residual_func,
                 sample_drop_ratio=self.sample_drop_ratio,
             )
-        elif self.training and self.sample_drop_ratio > 0.0:
+        elif self.training and self.drop_path_type == "origin":
             x = x + self.drop_path1(attn_residual_func(x))
             x = x + self.drop_path1(ffn_residual_func(x))  # FIXME: drop_path2
         else:
