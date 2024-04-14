@@ -1,0 +1,11 @@
+# this corresponds to the default config
+train:
+  dataset_path: ImageNet:split=TRAIN
+  OFFICIAL_EPOCH_LENGTH: 1250 # Batch size 1024
+  batch_size_per_gpu: 36 #256 with 4 gpus
+student:
+  arch: vit_small
+  block_chunks: 4
+evaluation:
+  eval_period_iterations: 12500
+
